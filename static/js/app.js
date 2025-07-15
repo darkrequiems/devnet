@@ -1,35 +1,36 @@
-// Network Engineering Toolkit JavaScript
+// Network Engineering Toolkit JavaScript - Enhanced with 100+ Use Cases
 
 // Global variables
 let ansibleExamples = {};
+let allUseCases = {};
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
-    // Load Ansible examples on page load
+    // Load data on page load
     fetchAnsibleExamples();
+    loadAllUseCases();
     
     // Set up navigation
     setupNavigation();
     
     // Add keyboard shortcuts
     setupKeyboardShortcuts();
+    
+    // Initialize VLSM requirements
+    initializeVLSMRequirements();
 });
 
 // Navigation setup
 function setupNavigation() {
-    const navLinks = document.querySelectorAll('.nav-link');
+    const navLinks = document.querySelectorAll('.nav-link, .dropdown-item');
     navLinks.forEach(link => {
         link.addEventListener('click', function(e) {
-            e.preventDefault();
             const target = this.getAttribute('href');
-            if (target.startsWith('#')) {
+            if (target && target.startsWith('#')) {
+                e.preventDefault();
                 document.querySelector(target).scrollIntoView({
                     behavior: 'smooth'
                 });
-                
-                // Update active nav link
-                navLinks.forEach(nl => nl.classList.remove('active'));
-                this.classList.add('active');
             }
         });
     });
@@ -50,16 +51,20 @@ function setupKeyboardShortcuts() {
                     break;
                 case '3':
                     e.preventDefault();
-                    document.querySelector('#config-tool').scrollIntoView({ behavior: 'smooth' });
+                    document.querySelector('#security-analyzer').scrollIntoView({ behavior: 'smooth' });
                     break;
                 case '4':
                     e.preventDefault();
-                    document.querySelector('#ansible-tool').scrollIntoView({ behavior: 'smooth' });
+                    document.querySelector('#protocol-analyzer').scrollIntoView({ behavior: 'smooth' });
                     break;
             }
         }
     });
 }
+
+// ============================================================================
+// ORIGINAL CORE FUNCTIONS
+// ============================================================================
 
 // Regex Tool Functions
 function testRegex() {
@@ -162,7 +167,6 @@ function loadRegexExamples() {
         }
     ];
     
-    // Show examples in a modal or dropdown
     let html = '<div class="mt-3"><h6>Common Networking Regex Examples:</h6><div class="row">';
     
     examples.forEach(example => {
@@ -282,6 +286,749 @@ function setCIDR(cidr) {
     document.getElementById('cidr-input').value = cidr;
     calculateCIDR('info');
 }
+
+// ============================================================================
+// NEW ENHANCED FUNCTIONS FOR 100+ USE CASES
+// ============================================================================
+
+// Security Analysis Functions
+function analyzeSecurityConfig() {
+    const config = document.getElementById('security-config').value;
+    const analysisType = document.getElementById('security-type').value;
+    
+    if (!config.trim()) {
+        showMessage('security-results', 'Please enter configuration to analyze', 'error');
+        return;
+    }
+    
+    showLoadingSpinner('security-results');
+    
+    fetch('/api/security-analyze', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            config: config,
+            type: analysisType
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        displaySecurityResults(data);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('security-results', 'An error occurred during security analysis', 'error');
+    });
+}
+
+function displaySecurityResults(data) {
+    const resultsDiv = document.getElementById('security-results');
+    
+    if (!data.success) {
+        showMessage('security-results', `Security Analysis Error: ${data.error}`, 'error');
+        return;
+    }
+    
+    let html = `
+        <div class="success-message">
+            <h5><i class="fas fa-shield-alt me-2"></i>Security Analysis Complete</h5>
+            <p>Found ${data.total_findings || data.total_issues || 0} security findings</p>
+        </div>
+    `;
+    
+    const findings = data.findings || data.issues || [];
+    if (findings.length > 0) {
+        html += '<div class="mt-3"><h6>Security Findings:</h6>';
+        findings.forEach((finding, index) => {
+            const severity = finding.severity || 'Info';
+            const severityClass = severity === 'High' ? 'danger' : severity === 'Medium' ? 'warning' : 'info';
+            
+            html += `
+                <div class="alert alert-${severityClass} mb-2">
+                    <strong>Finding ${index + 1}:</strong> ${finding.issue || finding.type}<br>
+                    <small><strong>Line:</strong> ${finding.line || 'N/A'}</small><br>
+                    <small><strong>Recommendation:</strong> ${finding.recommendation}</small>
+                </div>
+            `;
+        });
+        html += '</div>';
+    } else {
+        html += '<div class="alert alert-success mt-3">No security issues found!</div>';
+    }
+    
+    resultsDiv.innerHTML = html;
+}
+
+function loadSecurityExamples() {
+    const examples = {
+        passwords: `username admin password cisco123
+enable secret admin
+snmp-server community public ro
+crypto key generate rsa general-keys modulus 1024`,
+        acl: `access-list 100 permit ip any any
+access-list 101 deny tcp any host 192.168.1.1 eq 22
+access-list 101 permit ip any any
+access-list 102 deny ip any any`
+    };
+    
+    const analysisType = document.getElementById('security-type').value;
+    if (examples[analysisType]) {
+        document.getElementById('security-config').value = examples[analysisType];
+    }
+}
+
+// Protocol Analysis Functions
+function analyzeProtocolConfig() {
+    const config = document.getElementById('protocol-config').value;
+    const protocol = document.getElementById('protocol-type').value;
+    
+    if (!config.trim()) {
+        showMessage('protocol-results', 'Please enter protocol configuration', 'error');
+        return;
+    }
+    
+    showLoadingSpinner('protocol-results');
+    
+    fetch('/api/protocol-analyze', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            config: config,
+            protocol: protocol
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        displayProtocolResults(data, protocol);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('protocol-results', 'An error occurred during protocol analysis', 'error');
+    });
+}
+
+function displayProtocolResults(data, protocol) {
+    const resultsDiv = document.getElementById('protocol-results');
+    
+    if (!data.success) {
+        showMessage('protocol-results', `Protocol Analysis Error: ${data.error}`, 'error');
+        return;
+    }
+    
+    const analysis = data.analysis;
+    let html = `
+        <div class="success-message">
+            <h5><i class="fas fa-sitemap me-2"></i>${protocol.toUpperCase()} Analysis Complete</h5>
+        </div>
+        <div class="mt-3">
+    `;
+    
+    if (protocol === 'ospf') {
+        html += `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>OSPF Areas</h6>
+                    <ul class="list-group">
+                        ${analysis.areas.map(area => `<li class="list-group-item">Area ${area}</li>`).join('')}
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Network Statements</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr><th>Network</th><th>Wildcard</th><th>Area</th></tr>
+                            </thead>
+                            <tbody>
+                                ${analysis.interfaces.map(intf => 
+                                    `<tr><td>${intf.network}</td><td>${intf.wildcard}</td><td>${intf.area}</td></tr>`
+                                ).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else if (protocol === 'bgp') {
+        html += `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>BGP Configuration</h6>
+                    <p><strong>AS Number:</strong> ${analysis.asn || 'Not found'}</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>BGP Neighbors</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr><th>Neighbor IP</th><th>Remote AS</th></tr>
+                            </thead>
+                            <tbody>
+                                ${analysis.neighbors.map(neighbor => 
+                                    `<tr><td>${neighbor.ip}</td><td>${neighbor.remote_as}</td></tr>`
+                                ).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    resultsDiv.innerHTML = html;
+}
+
+function loadProtocolExamples() {
+    const examples = {
+        ospf: `router ospf 1
+ router-id 1.1.1.1
+ network 192.168.1.0 0.0.0.255 area 0
+ network 192.168.2.0 0.0.0.255 area 1
+ area 1 nssa`,
+        bgp: `router bgp 65001
+ bgp router-id 1.1.1.1
+ neighbor 192.168.1.2 remote-as 65002
+ neighbor 192.168.1.3 remote-as 65003
+ network 10.0.0.0 mask 255.0.0.0`
+    };
+    
+    const protocolType = document.getElementById('protocol-type').value;
+    if (examples[protocolType]) {
+        document.getElementById('protocol-config').value = examples[protocolType];
+    }
+}
+
+// VLSM Calculator Functions
+function initializeVLSMRequirements() {
+    // Add initial requirement field if none exist
+    const container = document.getElementById('vlsm-requirements');
+    if (!container.children.length) {
+        addVLSMRequirement();
+    }
+}
+
+function addVLSMRequirement() {
+    const container = document.getElementById('vlsm-requirements');
+    const div = document.createElement('div');
+    div.className = 'input-group mb-2';
+    div.innerHTML = `
+        <input type="number" class="form-control" placeholder="Number of hosts needed">
+        <button class="btn btn-outline-danger" type="button" onclick="removeVLSMRequirement(this)">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    container.appendChild(div);
+}
+
+function removeVLSMRequirement(button) {
+    const container = document.getElementById('vlsm-requirements');
+    if (container.children.length > 1) {
+        button.parentElement.remove();
+    }
+}
+
+function setVLSMExample(requirements) {
+    const container = document.getElementById('vlsm-requirements');
+    container.innerHTML = '';
+    
+    requirements.forEach(req => {
+        const div = document.createElement('div');
+        div.className = 'input-group mb-2';
+        div.innerHTML = `
+            <input type="number" class="form-control" value="${req}">
+            <button class="btn btn-outline-danger" type="button" onclick="removeVLSMRequirement(this)">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        container.appendChild(div);
+    });
+    
+    document.getElementById('vlsm-network').value = '192.168.1.0/24';
+}
+
+function calculateVLSM() {
+    const network = document.getElementById('vlsm-network').value;
+    const requirementInputs = document.querySelectorAll('#vlsm-requirements input[type="number"]');
+    const requirements = Array.from(requirementInputs).map(input => parseInt(input.value)).filter(val => !isNaN(val) && val > 0);
+    
+    if (!network) {
+        showMessage('vlsm-results', 'Please enter a base network', 'error');
+        return;
+    }
+    
+    if (requirements.length === 0) {
+        showMessage('vlsm-results', 'Please enter at least one subnet requirement', 'error');
+        return;
+    }
+    
+    showLoadingSpinner('vlsm-results');
+    
+    fetch('/api/vlsm-calc', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            network: network,
+            requirements: requirements
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        displayVLSMResults(data);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('vlsm-results', 'An error occurred during VLSM calculation', 'error');
+    });
+}
+
+function displayVLSMResults(data) {
+    const resultsDiv = document.getElementById('vlsm-results');
+    
+    if (!data.success) {
+        showMessage('vlsm-results', `VLSM Error: ${data.error}`, 'error');
+        return;
+    }
+    
+    let html = `
+        <div class="success-message">
+            <h5><i class="fas fa-calculator me-2"></i>VLSM Calculation Complete</h5>
+            <p>Base Network: ${data.base_network} | Subnets Generated: ${data.total_subnets}</p>
+        </div>
+        <div class="mt-3">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Subnet</th>
+                            <th>Hosts Needed</th>
+                            <th>Hosts Available</th>
+                            <th>First Host</th>
+                            <th>Last Host</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+    
+    data.subnets.forEach((subnet, index) => {
+        html += `
+            <tr>
+                <td><code>${subnet.network}</code></td>
+                <td>${subnet.hosts_needed}</td>
+                <td>${subnet.hosts_available}</td>
+                <td><code>${subnet.first_host}</code></td>
+                <td><code>${subnet.last_host}</code></td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    
+    resultsDiv.innerHTML = html;
+}
+
+// Supernet Calculator Functions
+function calculateSupernet() {
+    const networksText = document.getElementById('supernet-networks').value;
+    const networks = networksText.split('\n').map(line => line.trim()).filter(line => line);
+    
+    if (networks.length < 2) {
+        showMessage('supernet-results', 'Please enter at least 2 networks to aggregate', 'error');
+        return;
+    }
+    
+    showLoadingSpinner('supernet-results');
+    
+    fetch('/api/supernet-calc', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            networks: networks
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        displaySupernetResults(data);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('supernet-results', 'An error occurred during supernet calculation', 'error');
+    });
+}
+
+function displaySupernetResults(data) {
+    const resultsDiv = document.getElementById('supernet-results');
+    
+    if (!data.success) {
+        showMessage('supernet-results', `Supernet Error: ${data.error}`, 'error');
+        return;
+    }
+    
+    let html = `
+        <div class="success-message">
+            <h5><i class="fas fa-compress me-2"></i>Supernet Calculation Complete</h5>
+        </div>
+        <div class="mt-3">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Input Networks</h6>
+                    <ul class="list-group">
+                        ${data.input_networks.map(net => `<li class="list-group-item"><code>${net}</code></li>`).join('')}
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Aggregated Supernet(s)</h6>
+                    <ul class="list-group">
+                        ${data.supernet.map(net => `<li class="list-group-item"><code class="text-success">${net}</code></li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    resultsDiv.innerHTML = html;
+}
+
+// VLAN Analyzer Functions
+function analyzeVLANConfig() {
+    const config = document.getElementById('vlan-config').value;
+    
+    if (!config.trim()) {
+        showMessage('vlan-results', 'Please enter VLAN configuration', 'error');
+        return;
+    }
+    
+    showLoadingSpinner('vlan-results');
+    
+    fetch('/api/vlan-analyze', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            config: config
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        displayVLANResults(data);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('vlan-results', 'An error occurred during VLAN analysis', 'error');
+    });
+}
+
+function displayVLANResults(data) {
+    const resultsDiv = document.getElementById('vlan-results');
+    
+    if (!data.success) {
+        showMessage('vlan-results', `VLAN Analysis Error: ${data.error}`, 'error');
+        return;
+    }
+    
+    let html = `
+        <div class="success-message">
+            <h5><i class="fas fa-layer-group me-2"></i>VLAN Analysis Complete</h5>
+            <p>Total VLANs Found: ${data.total_vlans}</p>
+        </div>
+    `;
+    
+    if (data.vlans.length > 0) {
+        html += `
+            <div class="mt-3">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>VLAN ID</th>
+                                <th>VLAN Name</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+        
+        data.vlans.forEach(vlan => {
+            html += `
+                <tr>
+                    <td><span class="badge bg-primary">${vlan.id}</span></td>
+                    <td>${vlan.name}</td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+    
+    resultsDiv.innerHTML = html;
+}
+
+function loadVLANExamples() {
+    const example = `vlan 10
+ name DATA_VLAN
+vlan 20
+ name VOICE_VLAN
+vlan 30
+ name GUEST_VLAN
+vlan 100
+ name MGMT_VLAN
+vlan 200
+ name DMZ_VLAN`;
+    
+    document.getElementById('vlan-config').value = example;
+}
+
+// QoS Analyzer Functions
+function analyzeQoSConfig() {
+    const config = document.getElementById('qos-config').value;
+    
+    if (!config.trim()) {
+        showMessage('qos-results', 'Please enter QoS configuration', 'error');
+        return;
+    }
+    
+    showLoadingSpinner('qos-results');
+    
+    fetch('/api/qos-analyze', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            config: config
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        displayQoSResults(data);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('qos-results', 'An error occurred during QoS analysis', 'error');
+    });
+}
+
+function displayQoSResults(data) {
+    const resultsDiv = document.getElementById('qos-results');
+    
+    if (!data.success) {
+        showMessage('qos-results', `QoS Analysis Error: ${data.error}`, 'error');
+        return;
+    }
+    
+    const analysis = data.analysis;
+    let html = `
+        <div class="success-message">
+            <h5><i class="fas fa-tachometer-alt me-2"></i>QoS Analysis Complete</h5>
+        </div>
+        <div class="mt-3">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Class Maps</h6>
+                    <ul class="list-group">
+                        ${analysis.class_maps.map(cm => `<li class="list-group-item">${cm}</li>`).join('') || '<li class="list-group-item text-muted">No class maps found</li>'}
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Policy Maps</h6>
+                    <ul class="list-group">
+                        ${analysis.policy_maps.map(pm => `<li class="list-group-item">${pm}</li>`).join('') || '<li class="list-group-item text-muted">No policy maps found</li>'}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    resultsDiv.innerHTML = html;
+}
+
+function loadQoSExamples() {
+    const example = `class-map match-all VOICE
+ match dscp ef
+class-map match-all VIDEO
+ match dscp af41
+policy-map QOS_POLICY
+ class VOICE
+  priority percent 30
+ class VIDEO
+  bandwidth percent 25
+ class class-default
+  fair-queue`;
+    
+    document.getElementById('qos-config').value = example;
+}
+
+// IP Planning Functions
+function generateIPPlan() {
+    const networksText = document.getElementById('ip-networks').value;
+    const networks = networksText.split('\n').map(line => line.trim()).filter(line => line);
+    
+    if (networks.length === 0) {
+        showMessage('ip-plan-results', 'Please enter at least one network', 'error');
+        return;
+    }
+    
+    showLoadingSpinner('ip-plan-results');
+    
+    fetch('/api/ip-plan', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            networks: networks
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        displayIPPlanResults(data);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('ip-plan-results', 'An error occurred during IP plan generation', 'error');
+    });
+}
+
+function displayIPPlanResults(data) {
+    const resultsDiv = document.getElementById('ip-plan-results');
+    
+    if (!data.success) {
+        showMessage('ip-plan-results', `IP Plan Error: ${data.error}`, 'error');
+        return;
+    }
+    
+    let html = `
+        <div class="success-message">
+            <h5><i class="fas fa-map me-2"></i>IP Address Plan Generated</h5>
+            <p>Total Networks: ${data.total_networks}</p>
+        </div>
+        <div class="mt-3">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Network</th>
+                            <th>Class</th>
+                            <th>Type</th>
+                            <th>Total IPs</th>
+                            <th>Usable Hosts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+    
+    data.ip_plan.forEach(plan => {
+        html += `
+            <tr>
+                <td><code>${plan.network}</code></td>
+                <td><span class="badge bg-info">${plan.network_class}</span></td>
+                <td><span class="badge bg-${plan.type === 'Private' ? 'success' : 'warning'}">${plan.type}</span></td>
+                <td>${plan.size.toLocaleString()}</td>
+                <td>${plan.usable_hosts.toLocaleString()}</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    
+    resultsDiv.innerHTML = html;
+}
+
+// Use Cases Functions
+function loadAllUseCases() {
+    fetch('/api/use-cases')
+    .then(response => response.json())
+    .then(data => {
+        allUseCases = data;
+        displayUseCasesOverview(data);
+    })
+    .catch(error => {
+        console.error('Error loading use cases:', error);
+    });
+}
+
+function displayUseCasesOverview(data) {
+    const contentDiv = document.getElementById('use-cases-content');
+    
+    if (!data.success) {
+        contentDiv.innerHTML = '<div class="alert alert-danger">Failed to load use cases</div>';
+        return;
+    }
+    
+    let html = `
+        <div class="alert alert-info">
+            <h5><i class="fas fa-info-circle me-2"></i>Comprehensive Networking Toolkit</h5>
+            <p>This toolkit includes <strong>${data.total_use_cases}</strong> networking use cases across <strong>${data.total_categories}</strong> categories.</p>
+        </div>
+        <div class="accordion" id="useCasesAccordion">
+    `;
+    
+    Object.entries(data.use_cases).forEach(([category, cases], index) => {
+        const categoryName = category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        const collapseId = `collapse${index}`;
+        
+        html += `
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="heading${index}">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+                        <i class="fas fa-layer-group me-2"></i>
+                        ${categoryName} (${cases.length} tools)
+                    </button>
+                </h2>
+                <div id="${collapseId}" class="accordion-collapse collapse" data-bs-parent="#useCasesAccordion">
+                    <div class="accordion-body">
+                        <div class="row">
+        `;
+        
+        cases.forEach(useCase => {
+            html += `
+                <div class="col-md-6 mb-2">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <span>${useCase}</span>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    contentDiv.innerHTML = html;
+}
+
+// ============================================================================
+// ORIGINAL FUNCTIONS (Config Converter, Ansible, etc.)
+// ============================================================================
 
 // Config Converter Functions
 function convertConfig() {
@@ -447,7 +1194,10 @@ function downloadFile(filename, content) {
     document.body.removeChild(element);
 }
 
-// Utility Functions
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
 function showMessage(containerId, message, type) {
     const container = document.getElementById(containerId);
     const className = type === 'error' ? 'error-message' : 
